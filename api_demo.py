@@ -24,6 +24,35 @@ config1 = None
 config2 = None
 
 
+@app.route("/generate", methods=["POST"])
+def generate():
+    """
+    需要前端提供原图original、sketch、mask和stroke
+    :return: json
+    """
+    data = {"success": False}
+
+    if flask.request.method == 'POST':
+        if flask.request.files.get("original") and flask.request.files.get("sketch") and \
+                flask.request.files.get("mask") and flask.request.files.get("stroke"):
+            image = flask.request.files["original"].read()
+            original = imread(io.BytesIO(image))
+
+            image = flask.request.files["sketch"].read()
+            sketch = imread(io.BytesIO(image))
+
+            image = flask.request.files["mask"].read()
+            mask = imread(io.BytesIO(image))
+
+            image = flask.request.files["stroke"].read()
+            stroke = imread(io.BytesIO(image))
+            # TODO 接口返回什么的还需要调整/debug
+            data['result'] = get_result(original, sketch, mask, stroke)
+            data["success"] = True
+
+    return flask.jsonify(data)
+
+
 def load_model():
     global model1
     global model2
@@ -60,11 +89,21 @@ def load_model():
 
 
 def get_result(original, sketch, mask, stroke):
+    """
+
+    :param original: 原图
+    :param sketch: 手绘草图
+    :param mask: 掩码
+    :param stroke: 颜色喷漆
+    :return: 生成的图片
+    """
     global model1
     global model2
     global config1
     global config1
-
+    # TODO
+    # 这里命名realname = "1"是因为初步搭建框架，功能不完善，后续我们需要在后端将输入的图片处理一下获得parsing map
+    # 初步阶段就先默认我们有parsing map和parsing_gray.png了
     realname = "1"
     file = "1_image"
     noise = make_noise() * mask
@@ -78,8 +117,11 @@ def get_result(original, sketch, mask, stroke):
     cv2.imwrite("./model_input/" + realname + "_sketch.png", sketch)
     cv2.imwrite("./model_input/" + realname + "_stroke.png", stroke)
     img_path = file
+    # TODO
+    # 就是这里，realname_parsing_gray.png需要后端生成，年前我们先不管这个
     parsing_path = img_path.replace('image', 'parsing').replace('.jpg', '_gray.png')
 
+    # 下面这些基本都是复制的demo.py
     transform_list = []
     transform_list += [transforms.ToTensor()]
     transform_list += [transforms.Normalize((0.5, 0.5, 0.5),
@@ -239,7 +281,7 @@ def get_result(original, sketch, mask, stroke):
     cv2.imwrite("./full_pic/" + realname + "_full4pic.png", final)
     cv2.imwrite("./full_pic/" + realname + "_full3pic.png", final3)
 
-    return result1, result_final
+    return result_final
 
 
 def make_noise():
@@ -247,35 +289,3 @@ def make_noise():
     noise = cv2.randn(noise, 0, 255)
     noise = np.asarray(noise / 255, dtype=np.uint8)
     return noise
-
-
-@app.route("/generate", methods=["POST"])
-def generate():
-    """
-    需要前端提供原图original、sketch、mask和stroke
-    :return: json
-    """
-    # Initialize the data dictionary that will be returned from the view.
-    data = {"success": False}
-
-    # Ensure an image was properly uploaded to our endpoint.
-    if flask.request.method == 'POST':
-        if flask.request.files.get("original") and flask.request.files.get("sketch") and \
-                flask.request.files.get("mask") and flask.request.files.get("stroke"):
-            image = flask.request.files["original"].read()
-            original = imread(io.BytesIO(image))
-
-            image = flask.request.files["sketch"].read()
-            sketch = imread(io.BytesIO(image))
-
-            image = flask.request.files["mask"].read()
-            mask = imread(io.BytesIO(image))
-
-            image = flask.request.files["stroke"].read()
-            stroke = imread(io.BytesIO(image))
-
-            data['result'] = get_result(original, sketch, mask, stroke)
-            data["success"] = True
-
-    # Return the data dictionary as a JSON response.
-    return flask.jsonify(data)
