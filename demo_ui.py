@@ -299,8 +299,10 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
             sketch = self.make_sketch(self.scene.sketch_points)
             stroke = self.make_stroke(self.scene.stroke_points)
             mask = self.make_mask(self.scene.mask_points)
+            print(mask.shape)
             cv2.imwrite('./model_input/' + self.realname + '_mask_final.png', mask)
             noise = self.make_noise()
+            print(noise.shape)
             noise = noise * mask
             mask_input1 = mask
 

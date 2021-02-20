@@ -24,10 +24,6 @@ config1 = None
 config2 = None
 
 
-if __name__ == "__main__":
-    app.run()
-    
-
 @app.route("/generate", methods=["POST"])
 def generate():
     """
@@ -51,10 +47,20 @@ def generate():
             image = flask.request.files["stroke"].read()
             stroke = imread(io.BytesIO(image))
             # TODO 接口返回什么的还需要调整/debug
-            # data['result'] = get_result(original, sketch, mask, stroke)
+            data['result'] = get_result(original, sketch, mask, stroke)
             data["success"] = True
 
     return flask.jsonify(data)
+
+
+def test_api():
+    root = "./api/"
+    original = Image.open(root + 'original.jpg')
+    sketch = Image.open(root + 'sketch.jpg')
+    mask = Image.open(root + 'mask.png')
+    stroke = Image.open(root + 'stroke.png')
+    result = get_result(original, sketch, mask, stroke)
+    print("done")
 
 
 def load_model():
@@ -101,6 +107,7 @@ def get_result(original, sketch, mask, stroke):
     :param stroke: 颜色喷漆
     :return: 生成的图片
     """
+    load_model()
     global model1
     global model2
     global config1
@@ -110,6 +117,8 @@ def get_result(original, sketch, mask, stroke):
     # 初步阶段就先默认我们有parsing map和parsing_gray.png了
     realname = "1"
     file = "1_image"
+    mask = np.asarray(mask)
+    mask = np.expand_dims(mask, axis=3)
     noise = make_noise() * mask
     mask_input1 = mask  # 没经过asarray
     mask_3 = np.asarray(mask[:, :, 0] / 255, dtype=np.uint8)
@@ -293,3 +302,8 @@ def make_noise():
     noise = cv2.randn(noise, 0, 255)
     noise = np.asarray(noise / 255, dtype=np.uint8)
     return noise
+
+
+if __name__ == "__main__":
+    # app.run()
+    test_api()
