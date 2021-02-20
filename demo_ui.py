@@ -278,11 +278,11 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
         global extraedge
         print(extraedge)
         if extraedge:
-            mask = imread('./model_input/'+ self.realname[:-7] +'_mask.png')
+            mask = imread('./model_input/' + self.realname[:-7] + '_mask.png')
             erase = self.make_mask(self.scene_stroke.mask_points)
-            cv2.imwrite('./model_input/'+ self.realname +'_mask_more.png', erase)
+            cv2.imwrite('./model_input/' + self.realname + '_mask_more.png', erase)
             mask_final = erase + mask
-            cv2.imwrite('./model_input/'+ self.realname +'_mask_final.png',mask_final)
+            cv2.imwrite('./model_input/' + self.realname + '_mask_final.png', mask_final)
             sketch = self.make_sketch(self.scene_stroke.sketch_points)
             stroke = self.make_stroke(self.scene_stroke.stroke_points)
             stroke_more = self.stroke_more(self.scene_stroke.stroke_more_points)
@@ -299,9 +299,9 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
             sketch = self.make_sketch(self.scene.sketch_points)
             stroke = self.make_stroke(self.scene.stroke_points)
             mask = self.make_mask(self.scene.mask_points)
-            cv2.imwrite('./model_input/'+ self.realname +'_mask_final.png', mask)
+            cv2.imwrite('./model_input/' + self.realname + '_mask_final.png', mask)
             noise = self.make_noise()
-            noise = noise *mask
+            noise = noise * mask
             mask_input1 = mask
 
         transform_list = []

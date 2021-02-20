@@ -24,6 +24,10 @@ config1 = None
 config2 = None
 
 
+if __name__ == "__main__":
+    app.run()
+    
+
 @app.route("/generate", methods=["POST"])
 def generate():
     """
@@ -47,7 +51,7 @@ def generate():
             image = flask.request.files["stroke"].read()
             stroke = imread(io.BytesIO(image))
             # TODO 接口返回什么的还需要调整/debug
-            data['result'] = get_result(original, sketch, mask, stroke)
+            # data['result'] = get_result(original, sketch, mask, stroke)
             data["success"] = True
 
     return flask.jsonify(data)
