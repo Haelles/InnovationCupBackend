@@ -69,7 +69,7 @@ def load_model():
     global config1
     global config2
 
-    opt = TestOptions().parse()
+    opt = TestOptions().parse('model1')
     opt.dataset_mode = 'fashionE'
     opt.netG = 'parsing'
     opt.norm_G = 'batch'
@@ -82,7 +82,7 @@ def load_model():
     model1.eval()
     config1 = opt
 
-    opt2 = TestOptions().parse()
+    opt2 = TestOptions().parse('model2')
     opt2.dataset_mode = 'fashionE'
     opt2.output_nc = 3
     opt2.input_nc = 29
