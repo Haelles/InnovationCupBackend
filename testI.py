@@ -33,6 +33,7 @@ for i, data_i in enumerate(dataloader):
         break
 
     generated = model(data_i, mode='inference').unsqueeze(0)
+    print(generated.shape)
 
     img_path = data_i['img_path']  # print b: 1
     for b in range(generated.shape[0]):  # generated.shape[0] == batch size

@@ -136,7 +136,10 @@ def label_2_onehot(b_parsing_tensor, parsing_label_nc=20):
 
 def parsing2im(parsing, imtype=np.uint8):
     parsing_numpy = parsing.detach().cpu().float().numpy()  # 512 * 320
-    image_index = np.argmax(parsing_numpy.unsequeeze(0), axis=0)  # 320
+    parsing_numpy_tensor = torch.from_numpy(parsing_numpy)
+    image_index = np.argmax(parsing_numpy_tensor.unsqueeze(0), axis=0)  # 320
+    print("image_index")
+    print(image_index.shape)
     parsing_numpy = np.zeros((image_index.shape[0], image_index.shape[1], 3))
     for h in range(image_index.shape[0]):
         for w in range(image_index.shape[1]):
@@ -339,9 +342,12 @@ def get_random_color_img(height, width):
 def parsing_2_onechannel(parsing, imtype=np.uint8):
     parsing_numpy = parsing.cpu().float().numpy()
     image_index = np.argmax(parsing_numpy, axis=0)
+    print("parsing_2_onechannel")
+    print(image_index.shape)
     parsing_numpy = np.zeros((image_index.shape[0], image_index.shape[1], 3))
     for h in range(image_index.shape[0]):
         for w in range(image_index.shape[1]):
             parsing_numpy[h, w, :] = image_index[h, w]
 
     return parsing_numpy.astype(imtype)[:, :, 0:1]
+
