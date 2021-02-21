@@ -298,13 +298,15 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
         else:
             sketch = self.make_sketch(self.scene.sketch_points)
             stroke = self.make_stroke(self.scene.stroke_points)
-            mask = self.make_mask(self.scene.mask_points)
-            print(mask.shape)
+            mask = self.make_mask(self.scene.mask_points)  # (512, 320, 3)
+            # print(stroke.shape)
             cv2.imwrite('./model_input/' + self.realname + '_mask_final.png', mask)
             noise = self.make_noise()
-            print(noise.shape)
+            # print(noise.shape)
             noise = noise * mask
+            # print(noise.shape)
             mask_input1 = mask
+            # print(mask_input1.shape)
 
         transform_list = []
         transform_list += [transforms.ToTensor()]
@@ -319,7 +321,7 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
 
             stroke = stroke * mask_3 + stroke_more
         else:
-            stroke = stroke*self.mask_3
+            stroke = stroke*self.mask_3  # (512, 320, 3) * (512, 320, 1)
 
         cv2.imwrite("./model_input/" + self.realname + "_noise.png", noise)
         cv2.imwrite("./model_input/" + self.realname + "_sketch.png", sketch)
@@ -327,7 +329,10 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
         img_path = file
         parsing_path = img_path.replace('image', 'parsing').replace('.jpg', '_gray.png')
         print(parsing_path, "*" * 10)
-        label = Image.open(parsing_path)
+        label = Image.open(parsing_path)  # (320, 512)
+        # print(label.size)
+        # temp_label = imread(parsing_path)  # (512, 320)
+        # print(temp_label.shape)
         # label = Image.open("./model_input/parsing.png")
         params = get_params(self.config1, label.size)
         transform_label = get_transform(self.config1, params, method=Image.NEAREST, normalize=False)
@@ -338,7 +343,7 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
         if extraedge:
             incompleted_image = self.mat_img*mask_input1
         else :
-            incompleted_image = self.mat_img*(1-mask)
+            incompleted_image = self.mat_img*(1-mask)  # (512, 320, 3)
         cv2.imwrite("./model_input/"+ self.realname +"_incom.png",incompleted_image)
         mask_onehot = imread("./model_input/"+ self.realname +"_mask_final.png")
         mask_onehot = rgb2gray(mask_onehot)
@@ -546,8 +551,12 @@ class Ex(QWidget, Ui_Form):  # python支持多重继承
             mask = np.zeros((512,320,3))
             for pt in pts:
                 cv2.line(mask,pt['prev'],pt['curr'],(255,255,255),6)
+            # print("mask")
+            # print(mask.shape)    (512, 320, 3)
             mask_3 = np.asarray(mask[:,:,0]/255,dtype=np.uint8)
             mask_3 = np.expand_dims(mask_3,axis=2)
+            # print("mask_3.shape")  # (512, 320, 1)
+            # print(mask_3.shape)
             self.mask_3 = mask_3
             #mask = np.expand_dims(mask,axis=0)
         else:

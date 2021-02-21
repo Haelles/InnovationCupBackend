@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 from skimage.color import rgb2gray
 from torchvision.transforms import transforms
+from scipy.misc import imresize
 
 from data.base_dataset import get_params, get_transform
 from models.stageII_multiatt3_model import StageII_MultiAtt3_Model
@@ -55,10 +56,12 @@ def generate():
 
 def test_api():
     root = "./api/"
-    original = Image.open(root + 'original.jpg')
-    sketch = Image.open(root + 'sketch.jpg')
-    mask = Image.open(root + 'mask.png')
-    stroke = Image.open(root + 'stroke.png')
+    original = cv2.imread(root + 'original.jpg')
+    sketch = cv2.imread(root + 'sketch.jpg')
+    mask = cv2.imread(root + 'mask.png')
+
+    stroke = cv2.imread(root + 'stroke.png')
+    stroke = cv2.resize(stroke, (512, 320), interpolation=cv2.INTER_CUBIC)
     result = get_result(original, sketch, mask, stroke)
     print("done")
 
@@ -116,14 +119,14 @@ def get_result(original, sketch, mask, stroke):
     # 这里命名realname = "1"是因为初步搭建框架，功能不完善，后续我们需要在后端将输入的图片处理一下获得parsing map
     # 初步阶段就先默认我们有parsing map和parsing_gray.png了
     realname = "1"
-    file = "1_image"
-    mask = np.asarray(mask)
-    mask = np.expand_dims(mask, axis=3)
+    file = "./model_input/1_image.jpg"
+    cv2.imwrite('./model_input/' + realname + '_mask_final.png', mask)
     noise = make_noise() * mask
     mask_input1 = mask  # 没经过asarray
     mask_3 = np.asarray(mask[:, :, 0] / 255, dtype=np.uint8)
     mask_3 = np.expand_dims(mask_3, axis=2)
     sketch = sketch
+    stroke = np.expand_dims(np.asarray(stroke), axis=2)
     stroke = stroke * mask_3
 
     cv2.imwrite("./model_input/" + realname + "_noise.png", noise)
@@ -142,7 +145,7 @@ def get_result(original, sketch, mask, stroke):
     transform_image = transforms.Compose(transform_list)
 
     label = imread(parsing_path)
-    params = get_params(config1, label.size)
+    params = get_params(config1, label.shape)
     transform_label = get_transform(config1, params, method=Image.NEAREST, normalize=False)
     label_tensor = transform_label(label) * 255.0
 
