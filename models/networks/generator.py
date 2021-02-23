@@ -130,6 +130,8 @@ class MultiAtt3Generator(BaseNetwork):
         self.up_3 = ANLs(1 * ngf, opt.input_ANLs_nc)
 
     def forward(self, x):
+        # print("generator x.shape:")  torch.Size([1, 29, 512, 320])
+        # print(x.shape)
         parsing = x[:, :20, :, :]
         incompleted_image = x[:, 20:23, :, :]
         part_mask = x[:, 23:24, :, :]

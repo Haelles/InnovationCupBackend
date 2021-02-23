@@ -184,6 +184,8 @@ class Visualizer():
         txts = []
         links = []
         for label, image_numpy in visuals.items():
+            print("label")
+            print(label.shape)
             image_name = os.path.join(label, output_path)
             save_path = os.path.join(image_dir, image_name)
 

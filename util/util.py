@@ -1,4 +1,3 @@
-
 import re
 import importlib
 import torch
@@ -10,8 +9,10 @@ import dill as pickle
 import random
 
 import scipy.io as sio
+
 CMAP = sio.loadmat('./util/colormap.mat')['colormap']
 CMAP = (CMAP * 256).astype(np.uint8)
+
 
 def save_obj(obj, name):
     with open(name, 'wb') as f:
@@ -21,6 +22,7 @@ def save_obj(obj, name):
 def load_obj(name):
     with open(name, 'rb') as f:
         return pickle.load(f)
+
 
 # returns a configuration for creating a generator
 # |default_opt| should be the opt of the current experiment
@@ -134,12 +136,15 @@ def label_2_onehot(b_parsing_tensor, parsing_label_nc=20):
 
     return b_parsing_label
 
+
 def parsing2im(parsing, imtype=np.uint8):
     parsing_numpy = parsing.detach().cpu().float().numpy()  # 512 * 320
+    print("parsing_numpy")
+    print(parsing_numpy.shape)  # api_demo: (512, 320) testI:(20, 512, 320)
     parsing_numpy_tensor = torch.from_numpy(parsing_numpy)
     image_index = np.argmax(parsing_numpy_tensor.unsqueeze(0), axis=0)  # 320
-    print("image_index")
-    print(image_index.shape)
+#     print("image_index")
+#     print(image_index.shape)  # 512, 320
     parsing_numpy = np.zeros((image_index.shape[0], image_index.shape[1], 3))
     for h in range(image_index.shape[0]):
         for w in range(image_index.shape[1]):
@@ -147,12 +152,14 @@ def parsing2im(parsing, imtype=np.uint8):
 
     return parsing_numpy.astype(imtype)
 
+
 def parsing2im_batch(parsing_tensor, parsing_label_nc=20, tile=False):
     # transform each parsing_tensor in the batch
     images_np = []
     for b in range(parsing_tensor.size(0)):
         one_parsing = parsing_tensor[b]
-        one_parsing_np = parsing2im(label_2_onehot(one_parsing.unsqueeze(0), parsing_label_nc=parsing_label_nc))
+        print("in loop parsing2im_batch")
+        one_parsing_np = parsing2im(label_2_onehot(one_parsing, parsing_label_nc=parsing_label_nc))
         images_np.append(one_parsing_np.reshape(1, *one_parsing_np.shape))
     images_np = np.concatenate(images_np, axis=0)
 
@@ -165,11 +172,13 @@ def parsing2im_batch(parsing_tensor, parsing_label_nc=20, tile=False):
         images_np = images_np[0]
         return images_np
 
+
 def parsing2im_batch_by20chnl(parsing_tensor, tile=False):
     # transform each parsing_tensor in the batch
     images_np = []
     for b in range(parsing_tensor.size(0)):
-        one_parsing = parsing_tensor[b]
+        one_parsing = parsing_tensor[b]  # (320, 512)
+        print("in loop parsing2im_batch_by20chnl")
         one_parsing_np = parsing2im(one_parsing)
         images_np.append(one_parsing_np.reshape(1, *one_parsing_np.shape))
     images_np = np.concatenate(images_np, axis=0)
@@ -182,7 +191,6 @@ def parsing2im_batch_by20chnl(parsing_tensor, tile=False):
     else:
         images_np = images_np[0]
         return images_np
-
 
 
 def save_image(image_numpy, image_path, create_dir=False):
@@ -243,7 +251,8 @@ def find_class_in_module(target_cls_name, module):
             cls = clsobj
 
     if cls is None:
-        print("In %s, there should be a class whose name matches %s in lowercase without underscore(_)" % (module, target_cls_name))
+        print("In %s, there should be a class whose name matches %s in lowercase without underscore(_)" % (
+        module, target_cls_name))
         exit(0)
 
     return cls
@@ -274,9 +283,12 @@ def uint82bin(n, count=8):
 def labelcolormap(N):
     if N == 35:  # cityscape
         cmap = np.array([(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (111, 74, 0), (81, 0, 81),
-                         (128, 64, 128), (244, 35, 232), (250, 170, 160), (230, 150, 140), (70, 70, 70), (102, 102, 156), (190, 153, 153),
-                         (180, 165, 180), (150, 100, 100), (150, 120, 90), (153, 153, 153), (153, 153, 153), (250, 170, 30), (220, 220, 0),
-                         (107, 142, 35), (152, 251, 152), (70, 130, 180), (220, 20, 60), (255, 0, 0), (0, 0, 142), (0, 0, 70),
+                         (128, 64, 128), (244, 35, 232), (250, 170, 160), (230, 150, 140), (70, 70, 70),
+                         (102, 102, 156), (190, 153, 153),
+                         (180, 165, 180), (150, 100, 100), (150, 120, 90), (153, 153, 153), (153, 153, 153),
+                         (250, 170, 30), (220, 220, 0),
+                         (107, 142, 35), (152, 251, 152), (70, 130, 180), (220, 20, 60), (255, 0, 0), (0, 0, 142),
+                         (0, 0, 70),
                          (0, 60, 100), (0, 0, 90), (0, 0, 110), (0, 80, 100), (0, 0, 230), (119, 11, 32), (0, 0, 142)],
                         dtype=np.uint8)
     else:
@@ -328,10 +340,11 @@ class Colorize(object):
 
         return color_image
 
+
 def get_random_color_img(height, width):
-    color = lambda : [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
+    color = lambda: [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
     c = color()
-    img = np.zeros([height, width,3],dtype=np.uint8)
+    img = np.zeros([height, width, 3], dtype=np.uint8)
     h, w, _ = img.shape
     for i in range(h):
         for j in range(w):
@@ -339,15 +352,20 @@ def get_random_color_img(height, width):
 
     return img
 
+
 def parsing_2_onechannel(parsing, imtype=np.uint8):
-    parsing_numpy = parsing.cpu().float().numpy()
-    image_index = np.argmax(parsing_numpy, axis=0)
-    print("parsing_2_onechannel")
-    print(image_index.shape)
+    parsing_numpy = parsing.detach().cpu().float().numpy()  # 512 * 320
+    parsing_numpy_tensor = torch.from_numpy(parsing_numpy)
+    image_index = np.argmax(parsing_numpy_tensor.unsqueeze(0), axis=0)  # 320
+
+    # print("parsing_2_onechannel")
+    # print(image_index.shape)
     parsing_numpy = np.zeros((image_index.shape[0], image_index.shape[1], 3))
     for h in range(image_index.shape[0]):
         for w in range(image_index.shape[1]):
             parsing_numpy[h, w, :] = image_index[h, w]
 
     return parsing_numpy.astype(imtype)[:, :, 0:1]
+
+
 

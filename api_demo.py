@@ -57,11 +57,10 @@ def generate():
 def test_api():
     root = "./api/"
     original = cv2.imread(root + 'original.jpg')
-    sketch = cv2.imread(root + 'sketch.jpg')
+    sketch = cv2.imread(root + 'sketch.png')
     mask = cv2.imread(root + 'mask.png')
 
     stroke = cv2.imread(root + 'stroke.png')
-    stroke = cv2.resize(stroke, (512, 320), interpolation=cv2.INTER_CUBIC)
     result = get_result(original, sketch, mask, stroke)
     print("done")
 
@@ -126,7 +125,6 @@ def get_result(original, sketch, mask, stroke):
     mask_3 = np.asarray(mask[:, :, 0] / 255, dtype=np.uint8)
     mask_3 = np.expand_dims(mask_3, axis=2)
     sketch = sketch
-    stroke = np.expand_dims(np.asarray(stroke), axis=2)
     stroke = stroke * mask_3
 
     cv2.imwrite("./model_input/" + realname + "_noise.png", noise)
@@ -184,6 +182,7 @@ def get_result(original, sketch, mask, stroke):
 
     color = imread("./model_input/" + realname + "_stroke.png")
     color_1 = Image.fromarray(color).convert('RGB')
+    cv2.imwrite("./model_input/" + realname + "_stroke1.png", color_1)
     color_tensor = transform_image(color_1)
 
     # incompleted label
@@ -230,7 +229,7 @@ def get_result(original, sketch, mask, stroke):
         'part_RGB': part_RGB,
     }
 
-    result = model1(data_1, mode='inference')
+    result = model1(data_1, mode='inference')  # (20, 320, 512)
 
     result1 = parsing2im_batch_by20chnl(result, 0)
 

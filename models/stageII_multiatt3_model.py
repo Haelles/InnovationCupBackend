@@ -122,6 +122,8 @@ class StageII_MultiAtt3_Model(torch.nn.Module):
             original_label = data['label'].cuda()
             original_label = self.lable_2_onehot(original_label)
             inputs = torch.cat([original_label, data['incompleted_image'], data['part_mask'], data['mask_noise'], data['mask_color'], data['mask_edge']], dim=1)
+            # print("inputs.shape")  torch.Size([1, 29, 512, 320])
+            # print(inputs.shape)
         else:
             # ablation no parsing,
             inputs = torch.cat([data['incompleted_image'], data['mask_onehot'], data['mask_noise'], data['mask_color'], data['mask_edge']], dim=1)
