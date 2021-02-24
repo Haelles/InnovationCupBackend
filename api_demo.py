@@ -1,10 +1,12 @@
 import io
+import os
 import random
 
 import flask
 import torch
 from PIL import Image
 from PyQt5.QtGui import QImage
+from flask import send_from_directory
 from imageio import imread
 import numpy as np
 import cv2
@@ -23,6 +25,14 @@ model1 = None
 model2 = None
 config1 = None
 config2 = None
+
+
+@app.route('/result/<path:file_name>', methods=['GET', 'POST'])
+def index(file_name):
+    if os.path.isdir(file_name):
+        return '文件夹无法下载'
+    else:
+        return send_from_directory('./result', file_name, as_attachment=True)
 
 
 @app.route("/generate", methods=["POST"])
@@ -182,7 +192,7 @@ def get_result(original, sketch, mask, stroke):
 
     color = imread("./model_input/" + realname + "_stroke.png")
     color_1 = Image.fromarray(color).convert('RGB')
-    cv2.imwrite("./model_input/" + realname + "_stroke1.png", color_1)
+    # cv2.imwrite("./model_input/" + realname + "_stroke1.png", color_1)
     color_tensor = transform_image(color_1)
 
     # incompleted label
@@ -296,7 +306,8 @@ def get_result(original, sketch, mask, stroke):
     cv2.imwrite("./full_pic/" + realname + "_full4pic.png", final)
     cv2.imwrite("./full_pic/" + realname + "_full3pic.png", final3)
 
-    return result_final
+    cv2.imwrite("./result/" + realname + "_result.png", final3)
+    return realname + "_result.png"
 
 
 def make_noise():
@@ -307,5 +318,5 @@ def make_noise():
 
 
 if __name__ == "__main__":
-    # app.run()
-    test_api()
+    app.run()
+    # test_api()
