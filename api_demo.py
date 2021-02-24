@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import os
 import random
 
@@ -56,21 +57,22 @@ def generate():
     需要前端提供原图original、sketch、mask和stroke
     :return: json
     """
-    data = {"success": False}
+    result = {"success": False}
 
     if request.method == 'POST':
+        data = json.loads(request.get_data(as_text=True))['data']
         for i in range(4):
             with open(UPLOAD_FOLDER + name_list[i], 'wb') as decode_image:
-                decode_image.write(base64.b64decode(request.form[names[i]]))
+                decode_image.write(base64.b64decode(str(data.get(names[i]))))
 
         original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
         sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
         mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
         stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
-        data['result'] = get_result(original, sketch, mask, stroke)
-        data["success"] = True
+        result['result'] = "http://gpu193.mistgpu.xyz:30324/result/" + get_result(original, sketch, mask, stroke)
+        result["success"] = True
 
-    return flask.jsonify(data)
+    return flask.jsonify(result)
 
 
 def test_api():
@@ -327,5 +329,5 @@ def make_noise():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=30424)
+    app.run(host="0.0.0.0", port=30324)
     # test_api()

@@ -10,6 +10,9 @@ import base64
 UPLOAD_FOLDER = './api/'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+name_list = ['original.jpg', 'sketch.png', 'mask.png', 'stroke.png']
+names = ['original', 'sketch', 'mask', 'stroke']
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -40,5 +43,15 @@ def index(file_name):
         return send_from_directory(UPLOAD_FOLDER, file_name, as_attachment=True)
 
 
+def get_base64():
+    for i in range(4):
+        with open(UPLOAD_FOLDER + name_list[i], 'rb') as original_image:
+            # print(type(original_image))  # <class '_io.BufferedReader'>
+            image64 = base64.b64encode(original_image.read())  # 二进制串
+            with open(UPLOAD_FOLDER + names[i], 'wb') as res:
+                res.write(image64)
+
+
 if __name__ == '__main__':
-    app.run()
+    # app.run()
+    get_base64()
