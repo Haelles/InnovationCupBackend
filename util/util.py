@@ -139,8 +139,8 @@ def label_2_onehot(b_parsing_tensor, parsing_label_nc=20):
 
 def parsing2im(parsing, imtype=np.uint8):
     parsing_numpy = parsing.detach().cpu().float().numpy()  # 512 * 320
-    print("parsing_numpy")
-    print(parsing_numpy.shape)  # api_demo: (512, 320) testI:(20, 512, 320)
+    # print("parsing_numpy")
+    # print(parsing_numpy.shape)  # api_demo: (512, 320) testI:(20, 512, 320)
     parsing_numpy_tensor = torch.from_numpy(parsing_numpy)
     image_index = np.argmax(parsing_numpy_tensor.unsqueeze(0), axis=0)  # 320
 #     print("image_index")
@@ -158,7 +158,7 @@ def parsing2im_batch(parsing_tensor, parsing_label_nc=20, tile=False):
     images_np = []
     for b in range(parsing_tensor.size(0)):
         one_parsing = parsing_tensor[b]
-        print("in loop parsing2im_batch")
+        # print("in loop parsing2im_batch")
         one_parsing_np = parsing2im(label_2_onehot(one_parsing, parsing_label_nc=parsing_label_nc))
         images_np.append(one_parsing_np.reshape(1, *one_parsing_np.shape))
     images_np = np.concatenate(images_np, axis=0)
@@ -178,7 +178,7 @@ def parsing2im_batch_by20chnl(parsing_tensor, tile=False):
     images_np = []
     for b in range(parsing_tensor.size(0)):
         one_parsing = parsing_tensor[b]  # (320, 512)
-        print("in loop parsing2im_batch_by20chnl")
+        # print("in loop parsing2im_batch_by20chnl")
         one_parsing_np = parsing2im(one_parsing)
         images_np.append(one_parsing_np.reshape(1, *one_parsing_np.shape))
     images_np = np.concatenate(images_np, axis=0)

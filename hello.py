@@ -1,10 +1,13 @@
+import io
 import os
 from flask import Flask, make_response, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 import cv2
 import json
+from imageio import imread
+import base64
 
-UPLOAD_FOLDER = './api'
+UPLOAD_FOLDER = './api/'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
@@ -19,23 +22,14 @@ def allowed_file(filename):
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            # file = cv2.imread('./uploads/' + filename)
-            #             resp = make_response(file)
-            data = {'result': filename}
-            return json.dumps(data)
-    return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form action="" method=post enctype=multipart/form-data>
-      <p><input type=file name=file>
-         <input type=submit value=Upload>
-    </form>
-    '''
+        filename = request.form['filename']
+        with open(UPLOAD_FOLDER + filename, 'rb') as original_image:
+            # print(type(original_image))  # <class '_io.BufferedReader'>
+            image64 = base64.b64encode(original_image.read())  # 二进制串
+            with open(UPLOAD_FOLDER + 'test_original.jpg', 'wb') as decode_image:
+                decode_image.write(base64.b64decode(image64))
+                return 'true'
+    return 'false'
 
 
 @app.route('/result/<path:file_name>', methods=['GET', 'POST'])

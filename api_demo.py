@@ -1,3 +1,4 @@
+import base64
 import io
 import os
 import random
@@ -6,13 +7,14 @@ import flask
 import torch
 from PIL import Image
 from PyQt5.QtGui import QImage
-from flask import send_from_directory
+from flask import send_from_directory, Flask, request
 from imageio import imread
 import numpy as np
 import cv2
 from skimage.color import rgb2gray
 from torchvision.transforms import transforms
 from scipy.misc import imresize
+from werkzeug.utils import secure_filename
 
 from data.base_dataset import get_params, get_transform
 from models.stageII_multiatt3_model import StageII_MultiAtt3_Model
@@ -21,10 +23,23 @@ from options.test_options import TestOptions
 from util.util import parsing2im_batch_by20chnl, parsing_2_onechannel, tensor2im
 
 app = flask.Flask(__name__)
+
+UPLOAD_FOLDER = './api/'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 model1 = None
 model2 = None
 config1 = None
 config2 = None
+name_list = ['original.jpg', 'sketch.png', 'mask.png', 'stroke.png']
+names = ['original', 'sketch', 'mask', 'stroke']
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 
 @app.route('/result/<path:file_name>', methods=['GET', 'POST'])
@@ -43,34 +58,27 @@ def generate():
     """
     data = {"success": False}
 
-    if flask.request.method == 'POST':
-        if flask.request.files.get("original") and flask.request.files.get("sketch") and \
-                flask.request.files.get("mask") and flask.request.files.get("stroke"):
-            image = flask.request.files["original"].read()
-            original = imread(io.BytesIO(image))
+    if request.method == 'POST':
+        for i in range(4):
+            with open(UPLOAD_FOLDER + name_list[i], 'wb') as decode_image:
+                decode_image.write(base64.b64decode(request.form[names[i]]))
 
-            image = flask.request.files["sketch"].read()
-            sketch = imread(io.BytesIO(image))
-
-            image = flask.request.files["mask"].read()
-            mask = imread(io.BytesIO(image))
-
-            image = flask.request.files["stroke"].read()
-            stroke = imread(io.BytesIO(image))
-            # TODO 接口返回什么的还需要调整/debug
-            data['result'] = get_result(original, sketch, mask, stroke)
-            data["success"] = True
+        original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
+        sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
+        mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
+        stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
+        data['result'] = get_result(original, sketch, mask, stroke)
+        data["success"] = True
 
     return flask.jsonify(data)
 
 
 def test_api():
-    root = "./api/"
-    original = cv2.imread(root + 'original.jpg')
-    sketch = cv2.imread(root + 'sketch.png')
-    mask = cv2.imread(root + 'mask.png')
+    original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
+    sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
+    mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
 
-    stroke = cv2.imread(root + 'stroke.png')
+    stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
     result = get_result(original, sketch, mask, stroke)
     print("done")
 
@@ -129,6 +137,7 @@ def get_result(original, sketch, mask, stroke):
     # 初步阶段就先默认我们有parsing map和parsing_gray.png了
     realname = "1"
     file = "./model_input/1_image.jpg"
+    cv2.imwrite('./model_input/' + realname + '_image.jpg', original)
     cv2.imwrite('./model_input/' + realname + '_mask_final.png', mask)
     noise = make_noise() * mask
     mask_input1 = mask  # 没经过asarray
@@ -173,10 +182,10 @@ def get_result(original, sketch, mask, stroke):
     # incompleted image
 
     incompleted_image_1 = imread("./model_input/" + realname + "_incom.png")
-    print(incompleted_image_1.shape)
+    # print(incompleted_image_1.shape)
     incompleted_image_1 = Image.fromarray(incompleted_image_1)
     incompleted_image_tensor = transform_image(incompleted_image_1)
-    print(incompleted_image_tensor.size())
+    # print(incompleted_image_tensor.size())
     image_tensor = transform_image(original)
 
     noise_tensor = torch.randn_like(image_tensor)
@@ -318,5 +327,5 @@ def make_noise():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=30424)
     # test_api()
