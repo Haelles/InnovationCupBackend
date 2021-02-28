@@ -53,5 +53,5 @@ def get_base64():
 
 
 if __name__ == '__main__':
-    # app.run()
-    get_base64()
+    app.run()
+    # get_base64()

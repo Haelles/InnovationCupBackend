@@ -138,11 +138,11 @@ def label_2_onehot(b_parsing_tensor, parsing_label_nc=20):
 
 
 def parsing2im(parsing, imtype=np.uint8):
-    parsing_numpy = parsing.detach().cpu().float().numpy()  # 512 * 320
+    parsing_numpy = parsing.detach().cpu().float().numpy()  # 20 * 512 * 320
     # print("parsing_numpy")
-    # print(parsing_numpy.shape)  # api_demo: (512, 320) testI:(20, 512, 320)
+    # print(parsing_numpy.shape)  # api_demo: (20, 512, 320) testI:(20, 512, 320)
     parsing_numpy_tensor = torch.from_numpy(parsing_numpy)
-    image_index = np.argmax(parsing_numpy_tensor.unsqueeze(0), axis=0)  # 320
+    image_index = np.argmax(parsing_numpy_tensor.unsqueeze(0), axis=0)  # 512, 320
 #     print("image_index")
 #     print(image_index.shape)  # 512, 320
     parsing_numpy = np.zeros((image_index.shape[0], image_index.shape[1], 3))
@@ -177,7 +177,7 @@ def parsing2im_batch_by20chnl(parsing_tensor, tile=False):
     # transform each parsing_tensor in the batch
     images_np = []
     for b in range(parsing_tensor.size(0)):
-        one_parsing = parsing_tensor[b]  # (320, 512)
+        one_parsing = parsing_tensor[b]  # api_demo: (20, 320, 512)
         # print("in loop parsing2im_batch_by20chnl")
         one_parsing_np = parsing2im(one_parsing)
         images_np.append(one_parsing_np.reshape(1, *one_parsing_np.shape))

@@ -98,8 +98,8 @@ def load_model():
     opt.stage = 1
     opt.input_nc = 26
     opt.output_nc = 20
-    opt.name = 'fashionE_stageI_noflip_batchNorm_L110_Feat10_Parsing10_gan1_batch20_20190520'
-    opt.which_epoch = 20
+    opt.name = 'stage1_01'
+    opt.which_epoch = 'latest'
     model1 = StageI_Parsing_Model(opt)
     model1.eval()
     config1 = opt
@@ -113,8 +113,8 @@ def load_model():
     opt2.norm_G = 'batch'
     opt2.ngf = 64
     opt2.input_ANLs_nc = 5
-    opt2.which_epoch = 20
-    opt2.name = 'fasionE_stageII_matt3_noFeat_noL1_tv10_style200_20190520'
+    opt2.which_epoch = 'latest'
+    opt2.name = 'stage2_01'
     model2 = StageII_MultiAtt3_Model(opt2)
     model2.eval()
     config2 = opt2
@@ -129,7 +129,7 @@ def get_result(original, sketch, mask, stroke):
     :param stroke: 颜色喷漆
     :return: 生成的图片
     """
-    load_model()
+
     global model1
     global model2
     global config1
@@ -168,10 +168,10 @@ def get_result(original, sketch, mask, stroke):
     transform_label = get_transform(config1, params, method=Image.NEAREST, normalize=False)
     label_tensor = transform_label(label) * 255.0
 
-    incompleted_image = original * (1 - mask)
-    cv2.imwrite("./model_input/" + realname + "_incom.png", incompleted_image)
     mask_onehot = rgb2gray(imread("./model_input/" + realname + "_mask_final.png"))
     mask_onehot = (mask_onehot > 0).astype(np.uint8)
+    incompleted_image = original * (1 - mask)  # mask的部分变为0即黑色
+    cv2.imwrite("./model_input/" + realname + "_incom.png", incompleted_image)
     mask_arr = mask_onehot * 255
     mask_2 = Image.fromarray(mask_arr).convert('RGB')
     mask_tensor = transform_image(mask_2)
@@ -250,7 +250,7 @@ def get_result(original, sketch, mask, stroke):
         'part_RGB': part_RGB,
     }
 
-    result = model1(data_1, mode='inference')  # (20, 320, 512)
+    result = model1(data_1, mode='inference').unsqueeze(0)  # (1, 20, 320, 512)
 
     result1 = parsing2im_batch_by20chnl(result, 0)
 
@@ -287,14 +287,21 @@ def get_result(original, sketch, mask, stroke):
     }
 
     result2 = model2(data_2, mode='inference')
+    # mask_tensor -1黑 1白
+    mask_tensor = mask_tensor[0].cuda()
+    image_tensor = image_tensor[0].cuda()
+    generated_image_mul_mask = tensor2im(result2[0] * (1 + mask_tensor) / 2.0 - (1 - mask_tensor) / 2.0)
+    original_image_mul_mask = tensor2im(image_tensor * (1 - mask_tensor) / 2.0 - (1 + mask_tensor) / 2.0)
+    cv2.imwrite("./result/" + realname + "use_mask.png", generated_image_mul_mask + original_image_mul_mask)
+    result_final = tensor2im(result2[0])  # 得到HWC ndarray
 
-    result_final = tensor2im(result2[0])
+
 
     result_final = np.concatenate([result_final[:, :, :1], result_final[:, :, 1:2], result_final[:, :, 2:3]], axis=2)
     result_show_1 = np.concatenate([result1[:, :, 2:3], result1[:, :, 1:2], result1[:, :, :1]], axis=2)
     result_show = np.concatenate([result_final[:, :, 2:3], result_final[:, :, 1:2], result_final[:, :, :1]], axis=2)
-    cv2.imwrite("./result/" + realname + "result1.png", result_show_1)
-    cv2.imwrite("./result/" + realname + "result2.png", result_show)
+    cv2.imwrite("./result/" + realname + "result1.png", result_show_1)  # model1的结果
+    cv2.imwrite("./result/" + realname + "result2.png", result_show)  # model2的结果
     f = (edge_masked_final > 100).astype(np.uint8) * 255.0
     g = (mask_arr > 240).astype(np.uint8) * 255.0
     g = np.expand_dims(g, axis=2)
@@ -329,5 +336,7 @@ def make_noise():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=30324)
-    # test_api()
+    load_model()
+    # app.run(host="0.0.0.0", port=30324)
+    test_api()
+

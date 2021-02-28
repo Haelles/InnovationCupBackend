@@ -48,7 +48,7 @@ for epoch in iter_counter.training_epochs():
             visualizer.plot_current_errors(losses, iter_counter.total_steps_so_far)
 
         incompleted = label_2_onehot_batch(data_i['incompleted_label'])
-        label = label_2_onehot_batch(data_i['label'])
+        label = label_2_onehot_batch(data_i['label'])  # torch.Size([batch_size, 1, 512, 320])
         origin_incompleted_synthesized_label = torch.cat([incompleted, label, trainer.get_latest_generated()], dim=3)
         if iter_counter.needs_displaying():
             visuals = OrderedDict([
