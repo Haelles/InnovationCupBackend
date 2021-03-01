@@ -288,12 +288,21 @@ def get_result(original, sketch, mask, stroke):
 
     result2 = model2(data_2, mode='inference')
     # mask_tensor -1黑 1白
+    # original = cv2.imread('./model_input/' + '1_image.jpg')
+    #
+    # mask = cv2.imread('./model_input/' + 'mask_final.png')
+
     mask_tensor = mask_tensor[0].cuda()
     image_tensor = image_tensor[0].cuda()
     generated_image_mul_mask = tensor2im(result2[0] * (1 + mask_tensor) / 2.0 - (1 - mask_tensor) / 2.0)
     original_image_mul_mask = tensor2im(image_tensor * (1 - mask_tensor) / 2.0 - (1 + mask_tensor) / 2.0)
-    cv2.imwrite("./result/" + realname + "use_mask.png", generated_image_mul_mask + original_image_mul_mask)
+    cv2.imwrite("./result/" + realname + "use_mask.png", (generated_image_mul_mask + original_image_mul_mask))
+
+
     result_final = tensor2im(result2[0])  # 得到HWC ndarray
+    # print(type(1 - mask))
+    # print(type(result_final * mask))
+    # cv2.imwrite("./result/" + realname + "use_mask.png", result_final * mask + original * (1 - mask))
 
 
 
@@ -339,4 +348,5 @@ if __name__ == "__main__":
     load_model()
     # app.run(host="0.0.0.0", port=30324)
     test_api()
+
 
