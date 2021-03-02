@@ -65,23 +65,25 @@ def generate():
             with open(UPLOAD_FOLDER + name_list[i], 'wb') as decode_image:
                 decode_image.write(base64.b64decode(str(data.get(names[i]))))
 
+        path = data.get('path')
         original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
         sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
         mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
         stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
-        result['result'] = "http://gpu193.mistgpu.xyz:30324/result/" + get_result(original, sketch, mask, stroke)
+        result['result'] = "http://gpu193.mistgpu.xyz:30324/result/" + get_result(path, original, sketch, mask, stroke)
         result["success"] = True
 
     return flask.jsonify(result)
 
 
 def test_api():
-    original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
+    path = '0AE81A01V/0AE81A01V-A11@12.jpg'  # image目录下的相对路径
+    original = cv2.imread('../datasets/fashionE/fashionE_320_512_image/' + path)
     sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
     mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
 
     stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
-    result = get_result(original, sketch, mask, stroke)
+    result = get_result(path, original, sketch, mask, stroke)
     print("done")
 
 
@@ -120,9 +122,9 @@ def load_model():
     config2 = opt2
 
 
-def get_result(original, sketch, mask, stroke):
+def get_result(path, original, sketch, mask, stroke):
     """
-
+    :param real_name: 对应数据集中图片名
     :param original: 原图
     :param sketch: 手绘草图
     :param mask: 掩码
@@ -134,13 +136,13 @@ def get_result(original, sketch, mask, stroke):
     global model2
     global config1
     global config1
-    # TODO
-    # 这里命名realname = "1"是因为初步搭建框架，功能不完善，后续我们需要在后端将输入的图片处理一下获得parsing map
-    # 初步阶段就先默认我们有parsing map和parsing_gray.png了
-    realname = "1"
-    file = "./model_input/1_image.jpg"
-    cv2.imwrite('./model_input/' + realname + '_image.jpg', original)
-    cv2.imwrite('./model_input/' + realname + '_mask_final.png', mask)
+
+    real_name = path.replace('/', '-').replace('.jpg', '')
+    # path储存以../datasets/dp/img_320_512_image/为根目录的相对路径
+    # file = "../datasets/dp/img_320_512_image/" + path
+    file = "../datasets/fashionE/img_320_512_image/" + path
+    cv2.imwrite('./model_input/' + real_name + '_image.jpg', original)
+    cv2.imwrite('./model_input/' + real_name + '_mask_final.png', mask)
     noise = make_noise() * mask
     mask_input1 = mask  # 没经过asarray
     mask_3 = np.asarray(mask[:, :, 0] / 255, dtype=np.uint8)
@@ -148,12 +150,11 @@ def get_result(original, sketch, mask, stroke):
     sketch = sketch
     stroke = stroke * mask_3
 
-    cv2.imwrite("./model_input/" + realname + "_noise.png", noise)
-    cv2.imwrite("./model_input/" + realname + "_sketch.png", sketch)
-    cv2.imwrite("./model_input/" + realname + "_stroke.png", stroke)
+    cv2.imwrite("./model_input/" + real_name + "_noise.png", noise)
+    cv2.imwrite("./model_input/" + real_name + "_sketch.png", sketch)
+    cv2.imwrite("./model_input/" + real_name + "_stroke.png", stroke)
     img_path = file
-    # TODO
-    # 就是这里，realname_parsing_gray.png需要后端生成，年前我们先不管这个
+
     parsing_path = img_path.replace('image', 'parsing').replace('.jpg', '_gray.png')
 
     # 下面这些基本都是复制的demo.py
@@ -168,10 +169,10 @@ def get_result(original, sketch, mask, stroke):
     transform_label = get_transform(config1, params, method=Image.NEAREST, normalize=False)
     label_tensor = transform_label(label) * 255.0
 
-    mask_onehot = rgb2gray(imread("./model_input/" + realname + "_mask_final.png"))
+    mask_onehot = rgb2gray(imread("./model_input/" + real_name + "_mask_final.png"))
     mask_onehot = (mask_onehot > 0).astype(np.uint8)
     incompleted_image = original * (1 - mask)  # mask的部分变为0即黑色
-    cv2.imwrite("./model_input/" + realname + "_incom.png", incompleted_image)
+    cv2.imwrite("./model_input/" + real_name + "_incom.png", incompleted_image)
     mask_arr = mask_onehot * 255
     mask_2 = Image.fromarray(mask_arr).convert('RGB')
     mask_tensor = transform_image(mask_2)
@@ -183,7 +184,7 @@ def get_result(original, sketch, mask, stroke):
 
     # incompleted image
 
-    incompleted_image_1 = imread("./model_input/" + realname + "_incom.png")
+    incompleted_image_1 = imread("./model_input/" + real_name + "_incom.png")
     # print(incompleted_image_1.shape)
     incompleted_image_1 = Image.fromarray(incompleted_image_1)
     incompleted_image_tensor = transform_image(incompleted_image_1)
@@ -193,17 +194,17 @@ def get_result(original, sketch, mask, stroke):
     noise_tensor = torch.randn_like(image_tensor)
     mask_noise_tensor = noise_tensor * (1 + mask_tensor) / 2.0 - (1 - mask_tensor) / 2.0
 
-    more_edge_numpy = cv2.imread("./model_input/" + realname + "_sketch.png")
+    more_edge_numpy = cv2.imread("./model_input/" + real_name + "_sketch.png")
     edge_final = more_edge_numpy
-    cv2.imwrite("./model_input/" + realname + "_edge_masked.png", edge_final)
-    edge_masked_final = imread("./model_input/" + realname + "_edge_masked.png")
+    cv2.imwrite("./model_input/" + real_name + "_edge_masked.png", edge_final)
+    edge_masked_final = imread("./model_input/" + real_name + "_edge_masked.png")
 
     edge_masked_final_1 = Image.fromarray(edge_masked_final).convert('RGB')
     mask_edge_tensor = transform_image(edge_masked_final_1)
 
-    color = imread("./model_input/" + realname + "_stroke.png")
+    color = imread("./model_input/" + real_name + "_stroke.png")
     color_1 = Image.fromarray(color).convert('RGB')
-    # cv2.imwrite("./model_input/" + realname + "_stroke1.png", color_1)
+    # cv2.imwrite("./model_input/" + real_name + "_stroke1.png", color_1)
     color_tensor = transform_image(color_1)
 
     # incompleted label
@@ -256,14 +257,14 @@ def get_result(original, sketch, mask, stroke):
 
     second_input = parsing_2_onechannel(result[0])
 
-    cv2.imwrite("./model_input/" + realname + "_model1_output.png", second_input)
+    cv2.imwrite("./model_input/" + real_name + "_model1_output.png", second_input)
 
-    label1 = Image.open("./model_input/" + realname + "_model1_output.png")
+    label1 = Image.open("./model_input/" + real_name + "_model1_output.png")
     params = get_params(config2, label1.size)
     transform_label = get_transform(config2, params, method=Image.NEAREST, normalize=False)
     label_tensor1 = transform_label(label1) * 255.0
 
-    original_label1 = imread("./model_input/" + realname + "_model1_output.png")
+    original_label1 = imread("./model_input/" + real_name + "_model1_output.png")
     incompleted_label1 = original_label1 * (1 - mask_onehot)
     incompleted_label1 = Image.fromarray(incompleted_label1)
     incompleted_label_tensor1 = transform_label(incompleted_label1) * 255.0
@@ -296,21 +297,21 @@ def get_result(original, sketch, mask, stroke):
     image_tensor = image_tensor[0].cuda()
     generated_image_mul_mask = tensor2im(result2[0] * (1 + mask_tensor) / 2.0 - (1 - mask_tensor) / 2.0)
     original_image_mul_mask = tensor2im(image_tensor * (1 - mask_tensor) / 2.0 - (1 + mask_tensor) / 2.0)
-    cv2.imwrite("./result/" + realname + "use_mask.png", (generated_image_mul_mask + original_image_mul_mask))
+    cv2.imwrite("./result/" + real_name + "use_mask.png", (generated_image_mul_mask + original_image_mul_mask))
 
 
     result_final = tensor2im(result2[0])  # 得到HWC ndarray
     # print(type(1 - mask))
     # print(type(result_final * mask))
-    # cv2.imwrite("./result/" + realname + "use_mask.png", result_final * mask + original * (1 - mask))
+    # cv2.imwrite("./result/" + real_name + "use_mask.png", result_final * mask + original * (1 - mask))
 
 
 
     result_final = np.concatenate([result_final[:, :, :1], result_final[:, :, 1:2], result_final[:, :, 2:3]], axis=2)
     result_show_1 = np.concatenate([result1[:, :, 2:3], result1[:, :, 1:2], result1[:, :, :1]], axis=2)
     result_show = np.concatenate([result_final[:, :, 2:3], result_final[:, :, 1:2], result_final[:, :, :1]], axis=2)
-    cv2.imwrite("./result/" + realname + "result1.png", result_show_1)  # model1的结果
-    cv2.imwrite("./result/" + realname + "result2.png", result_show)  # model2的结果
+    cv2.imwrite("./result/" + real_name + "result1.png", result_show_1)  # model1的结果
+    cv2.imwrite("./result/" + real_name + "result2.png", result_show)  # model2的结果
     f = (edge_masked_final > 100).astype(np.uint8) * 255.0
     g = (mask_arr > 240).astype(np.uint8) * 255.0
     g = np.expand_dims(g, axis=2)
@@ -320,7 +321,7 @@ def get_result(original, sketch, mask, stroke):
     q = np.zeros((512, 320, 3))
     image_mid = q + g - e + color + incompleted_image_1 - f
     image_mid = np.concatenate((image_mid[:, :, 2:3], image_mid[:, :, 1:2], image_mid[:, :, :1]), axis=2)
-    cv2.imwrite("./model_input/" + realname + "_image_mid.png", image_mid)
+    cv2.imwrite("./model_input/" + real_name + "_image_mid.png", image_mid)
 
     first = np.pad(original, ((3, 3), (3, 3), (0, 0)), 'constant', constant_values=(0, 0))
     second = np.pad(image_mid, ((3, 3), (3, 3), (0, 0)), 'constant', constant_values=(0, 0))
@@ -330,11 +331,11 @@ def get_result(original, sketch, mask, stroke):
     final = np.concatenate((first, second, third, fourth), axis=1)
     final3 = np.concatenate((first, second, third), axis=1)
 
-    cv2.imwrite("./full_pic/" + realname + "_full4pic.png", final)
-    cv2.imwrite("./full_pic/" + realname + "_full3pic.png", final3)
+    cv2.imwrite("./full_pic/" + real_name + "_full4pic.png", final)
+    cv2.imwrite("./full_pic/" + real_name + "_full3pic.png", final3)
 
-    cv2.imwrite("./result/" + realname + "_result.png", final3)
-    return realname + "_result.png"
+    cv2.imwrite("./result/" + real_name + "_result.png", final3)
+    return real_name + "_result.png"
 
 
 def make_noise():
