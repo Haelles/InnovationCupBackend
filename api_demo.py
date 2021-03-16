@@ -14,7 +14,7 @@ import numpy as np
 import cv2
 from skimage.color import rgb2gray
 from torchvision.transforms import transforms
-from scipy.misc import imresize
+# from scipy.misc import imresize
 from werkzeug.utils import secure_filename
 
 from data.base_dataset import get_params, get_transform
@@ -78,7 +78,7 @@ def generate():
         sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
         mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
         stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
-        result['result'] = "http://gpu193.mistgpu.xyz:30324/result/" + get_result(name, original, sketch, mask, stroke)
+        result['result'] = "mist@ygg.mistgpu.xyz:60504/result/" + get_result(name, original, sketch, mask, stroke)
         result["success"] = True
 
     return flask.jsonify(result)
@@ -164,12 +164,12 @@ def get_result(name, original, sketch, mask, stroke):
     real_name = name.replace('.jpg', '')
 
     mean_bgr = np.array([187.4646117, 190.3556895, 198.6592035])
-    original_copy = copy.deepcopy(original.astype(np.float64))
+    original_copy = copy.deepcopy(np.array(original).astype(np.float64))
     original_copy -= mean_bgr
     original_copy = original_copy.transpose(2, 0, 1)
-    original_copy_tensor = torch.from_numpy(original_copy).unsqueeze(0)
+    original_copy_tensor = torch.from_numpy(original_copy).cuda().unsqueeze(0).float()
     parsing_gray = model_original(original_copy_tensor).data.max(1)[1].squeeze(0)
-    parsing_gray = parsing_gray.cpu().numpy()[:, :, :].transpose(1, 2, 0)  # CHW
+    parsing_gray = parsing_gray.cpu().numpy()
     cv2.imwrite('./model_input/' + real_name + '_image_parsing_gray.png', parsing_gray)
 
     cv2.imwrite('./model_input/' + real_name + '_image.jpg', original)
@@ -375,7 +375,8 @@ def make_noise():
 
 if __name__ == "__main__":
     load_model()
-    # app.run(host="0.0.0.0", port=30324)
-    test_api()
+    app.run(host="0.0.0.0", port=60504)
+    # test_api()
+
 
 
