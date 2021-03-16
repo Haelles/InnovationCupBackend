@@ -23,8 +23,16 @@ from models.stageI_parsing_model import StageI_Parsing_Model
 from options.test_options import TestOptions
 from util.util import parsing2im_batch_by20chnl, parsing_2_onechannel, tensor2im
 
+import torchfcn
+import copy
+
+
 app = flask.Flask(__name__)
 
+# parsing part
+model_original = None
+
+# fashion editing part
 UPLOAD_FOLDER = './api/'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -54,7 +62,7 @@ def index(file_name):
 @app.route("/generate", methods=["POST"])
 def generate():
     """
-    需要前端提供原图original、sketch、mask和stroke
+    需要前端提供名字name、原图original、sketch、mask和stroke
     :return: json
     """
     result = {"success": False}
@@ -65,12 +73,12 @@ def generate():
             with open(UPLOAD_FOLDER + name_list[i], 'wb') as decode_image:
                 decode_image.write(base64.b64decode(str(data.get(names[i]))))
 
-        path = data.get('path')
+        name = data.get('name')
         original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
         sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
         mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
         stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
-        result['result'] = "http://gpu193.mistgpu.xyz:30324/result/" + get_result(path, original, sketch, mask, stroke)
+        result['result'] = "http://gpu193.mistgpu.xyz:30324/result/" + get_result(name, original, sketch, mask, stroke)
         result["success"] = True
 
     return flask.jsonify(result)
@@ -92,6 +100,20 @@ def load_model():
     global model2
     global config1
     global config2
+
+    global model_original
+
+    model_original = torchfcn.models.FCN8sAtOnce(n_class=20).cuda()
+    model_original_file = os.path.expanduser('~/fcn8s_at_once_epoch25.pth.tar')
+
+    print('==> Loading %s model file: %s' %
+          (model_original.__class__.__name__, model_original_file))
+    model_data = torch.load(model_original_file)
+    try:
+        model_original.load_state_dict(model_data)
+    except Exception:
+        model_original.load_state_dict(model_data['model_state_dict'])
+    model_original.eval()
 
     opt = TestOptions().parse('model1')
     opt.dataset_mode = 'fashionE'
@@ -122,7 +144,7 @@ def load_model():
     config2 = opt2
 
 
-def get_result(path, original, sketch, mask, stroke):
+def get_result(name, original, sketch, mask, stroke):
     """
     :param real_name: 对应数据集中图片名
     :param original: 原图
@@ -137,10 +159,19 @@ def get_result(path, original, sketch, mask, stroke):
     global config1
     global config1
 
-    real_name = path.replace('/', '-').replace('.jpg', '')
-    # path储存以../datasets/dp/img_320_512_image/为根目录的相对路径
-    # file = "../datasets/dp/img_320_512_image/" + path
-    file = "../datasets/fashionE/img_320_512_image/" + path
+    global model_original
+
+    real_name = name.replace('.jpg', '')
+
+    mean_bgr = np.array([187.4646117, 190.3556895, 198.6592035])
+    original_copy = copy.deepcopy(original.astype(np.float64))
+    original_copy -= mean_bgr
+    original_copy = original_copy.transpose(2, 0, 1)
+    original_copy_tensor = torch.from_numpy(original_copy).unsqueeze(0)
+    parsing_gray = model_original(original_copy_tensor).data.max(1)[1].squeeze(0)
+    parsing_gray = parsing_gray.cpu().numpy()[:, :, :].transpose(1, 2, 0)  # CHW
+    cv2.imwrite('./model_input/' + real_name + '_image_parsing_gray.png', parsing_gray)
+
     cv2.imwrite('./model_input/' + real_name + '_image.jpg', original)
     cv2.imwrite('./model_input/' + real_name + '_mask_final.png', mask)
     noise = make_noise() * mask
@@ -153,11 +184,8 @@ def get_result(path, original, sketch, mask, stroke):
     cv2.imwrite("./model_input/" + real_name + "_noise.png", noise)
     cv2.imwrite("./model_input/" + real_name + "_sketch.png", sketch)
     cv2.imwrite("./model_input/" + real_name + "_stroke.png", stroke)
-    img_path = file
+    parsing_path = "./model_input/" + real_name + "_image_parsing_gray.png"
 
-    parsing_path = img_path.replace('image', 'parsing').replace('.jpg', '_gray.png')
-
-    # 下面这些基本都是复制的demo.py
     transform_list = []
     transform_list += [transforms.ToTensor()]
     transform_list += [transforms.Normalize((0.5, 0.5, 0.5),
