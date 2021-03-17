@@ -199,7 +199,10 @@ def get_result(name, original, sketch, mask, stroke):
 
     mask_onehot = rgb2gray(imread("./model_input/" + real_name + "_mask_final.png"))
     mask_onehot = (mask_onehot > 0).astype(np.uint8)
-    incompleted_image = original * (1 - mask)  # mask的部分变为0即黑色
+    # 1 - mask后，原mask白色的区域应该对应0
+    # mask中白色为255 np.uint8(1 - 255) == 2
+    mask[mask == 2] = 0
+    incompleted_image = original * (1 - mask)  # mask的部分变为0即黑色 1 - mask得到1或2，似有误
     cv2.imwrite("./model_input/" + real_name + "_incom.png", incompleted_image)
     mask_arr = mask_onehot * 255
     mask_2 = Image.fromarray(mask_arr).convert('RGB')
