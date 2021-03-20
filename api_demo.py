@@ -201,8 +201,9 @@ def get_result(name, original, sketch, mask, stroke):
     mask_onehot = (mask_onehot > 0).astype(np.uint8)
     # 1 - mask后，原mask白色的区域应该对应0
     # mask中白色为255 np.uint8(1 - 255) == 2
-    mask[mask == 2] = 0
-    incompleted_image = original * (1 - mask)  # mask的部分变为0即黑色 1 - mask得到1或2，似有误
+    temp = 1 - mask
+    temp[temp == 2] = 0
+    incompleted_image = original * temp  # mask的部分变为0即黑色 1 - mask得到1或2，似有误
     cv2.imwrite("./model_input/" + real_name + "_incom.png", incompleted_image)
     mask_arr = mask_onehot * 255
     mask_2 = Image.fromarray(mask_arr).convert('RGB')
@@ -328,19 +329,18 @@ def get_result(name, original, sketch, mask, stroke):
     image_tensor = image_tensor[0].cuda()
     generated_image_mul_mask = tensor2im(result2[0] * (1 + mask_tensor) / 2.0 - (1 - mask_tensor) / 2.0)
     original_image_mul_mask = tensor2im(image_tensor * (1 - mask_tensor) / 2.0 - (1 + mask_tensor) / 2.0)
-    cv2.imwrite("./result/" + real_name + "use_mask.png", (generated_image_mul_mask + original_image_mul_mask))
+    # cv2.imwrite("./result/" + real_name + "use_mask.png", (generated_image_mul_mask + original_image_mul_mask))
 
 
     result_final = tensor2im(result2[0])  # 得到HWC ndarray
     # print(type(1 - mask))
     # print(type(result_final * mask))
-    # cv2.imwrite("./result/" + real_name + "use_mask.png", result_final * mask + original * (1 - mask))
-
-
 
     result_final = np.concatenate([result_final[:, :, :1], result_final[:, :, 1:2], result_final[:, :, 2:3]], axis=2)
+    # BGR -> RGB
     result_show_1 = np.concatenate([result1[:, :, 2:3], result1[:, :, 1:2], result1[:, :, :1]], axis=2)
     result_show = np.concatenate([result_final[:, :, 2:3], result_final[:, :, 1:2], result_final[:, :, :1]], axis=2)
+    result_show = result_show * (1 - temp) + original * temp
     cv2.imwrite("./result/" + real_name + "result1.png", result_show_1)  # model1的结果
     cv2.imwrite("./result/" + real_name + "result2.png", result_show)  # model2的结果
     f = (edge_masked_final > 100).astype(np.uint8) * 255.0
