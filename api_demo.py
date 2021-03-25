@@ -73,12 +73,26 @@ def generate():
             with open(UPLOAD_FOLDER + name_list[i], 'wb') as decode_image:
                 decode_image.write(base64.b64decode(str(data.get(names[i]))))
 
-        name = data.get('name')
+        name = str(data.get('name'))
+        print(name)
+        size = (320, 512)
         original = cv2.imread(UPLOAD_FOLDER + 'original.jpg')
+        original = cv2.resize(original, dsize=size)
+        cv2.imwrite(UPLOAD_FOLDER + 'original.jpg', original)
+
         sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
+        sketch = cv2.resize(sketch, dsize=size)
+        cv2.imwrite(UPLOAD_FOLDER + 'sketch.png', sketch)
+
         mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
+        mask = cv2.resize(mask, dsize=size)
+        cv2.imwrite(UPLOAD_FOLDER + 'mask.png', mask)
+
         stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
-        result['result'] = "mist@ygg.mistgpu.xyz:60504/result/" + get_result(name, original, sketch, mask, stroke)
+        stroke = cv2.resize(stroke, dsize=size)
+        cv2.imwrite(UPLOAD_FOLDER + 'stroke.png', stroke)
+
+        result['result'] = "mist@gpu82.mistgpu.xyz:30524/result/" + get_result(name, original, sketch, mask, stroke)
         result["success"] = True
 
     return flask.jsonify(result)
@@ -198,14 +212,14 @@ def get_result(name, original, sketch, mask, stroke):
     label_tensor = transform_label(label) * 255.0
 
     mask_onehot = rgb2gray(imread("./model_input/" + real_name + "_mask_final.png"))
-    mask_onehot = (mask_onehot > 0).astype(np.uint8)
+    mask_onehot = (mask_onehot > 0).astype(np.uint8)  # 0和1
     # 1 - mask后，原mask白色的区域应该对应0
     # mask中白色为255 np.uint8(1 - 255) == 2
     temp = 1 - mask
     temp[temp == 2] = 0
     incompleted_image = original * temp  # mask的部分变为0即黑色 1 - mask得到1或2，似有误
     cv2.imwrite("./model_input/" + real_name + "_incom.png", incompleted_image)
-    mask_arr = mask_onehot * 255
+    mask_arr = mask_onehot * 255  # 还原成了0和255的mask，不过是单通道的，而mask是三通道的
     mask_2 = Image.fromarray(mask_arr).convert('RGB')
     mask_tensor = transform_image(mask_2)
 

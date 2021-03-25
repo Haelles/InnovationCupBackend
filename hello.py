@@ -7,7 +7,7 @@ import json
 from imageio import imread
 import base64
 
-UPLOAD_FOLDER = './api/'
+UPLOAD_FOLDER = '../temp/'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 name_list = ['original.jpg', 'sketch.png', 'mask.png', 'stroke.png']
@@ -32,6 +32,7 @@ def upload_file():
             with open(UPLOAD_FOLDER + 'test_original.jpg', 'wb') as decode_image:
                 decode_image.write(base64.b64decode(image64))
                 return 'true'
+
     return 'false'
 
 
@@ -53,5 +54,5 @@ def get_base64():
 
 
 if __name__ == '__main__':
-    app.run()
-    # get_base64()
+    # app.run()
+    get_base64()
