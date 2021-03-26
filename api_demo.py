@@ -82,17 +82,19 @@ def generate():
 
         sketch = cv2.imread(UPLOAD_FOLDER + 'sketch.png')
         sketch = cv2.resize(sketch, dsize=size)
-        cv2.imwrite(UPLOAD_FOLDER + 'sketch.png', sketch)
+        temp_sketch = (sketch > 0).astype(np.uint8) * 255
+        cv2.imwrite(UPLOAD_FOLDER + 'sketch.png', temp_sketch)
 
         mask = cv2.imread(UPLOAD_FOLDER + 'mask.png')
         mask = cv2.resize(mask, dsize=size)
-        cv2.imwrite(UPLOAD_FOLDER + 'mask.png', mask)
+        temp_mask = (mask > 0).astype(np.uint8) * 255
+        cv2.imwrite(UPLOAD_FOLDER + 'mask.png', temp_mask)
 
         stroke = cv2.imread(UPLOAD_FOLDER + 'stroke.png')
         stroke = cv2.resize(stroke, dsize=size)
         cv2.imwrite(UPLOAD_FOLDER + 'stroke.png', stroke)
 
-        result['result'] = "mist@gpu82.mistgpu.xyz:30524/result/" + get_result(name, original, sketch, mask, stroke)
+        result['result'] = "mist@gpu82.mistgpu.xyz:30524/result/" + get_result(name, original, temp_sketch, temp_mask, stroke)
         result["success"] = True
 
     return flask.jsonify(result)
@@ -392,7 +394,7 @@ def make_noise():
 
 if __name__ == "__main__":
     load_model()
-    app.run(host="0.0.0.0", port=60504)
+    app.run(host="0.0.0.0", port=30524)
     # test_api()
 
 
