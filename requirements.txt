@@ -9,7 +9,7 @@ numpy~=1.18.5
 pillow~=7.2.0
 pyqt5~=5.15.2
 imageio~=2.9.0
-flask~=1.1.2
+flask
 werkzeug~=1.0.1
 requests~=2.25.1
 torchfcn~=1.9.6
